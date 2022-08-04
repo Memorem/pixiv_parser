@@ -32,7 +32,6 @@ HEADERS = {
         'referer': 'https://app-api.pixiv.net/',
     }
 
-
 LOGIN = os.environ.get('LOGIN')
 PASSWORD = os.environ.get('PASSWORD')
 

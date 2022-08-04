@@ -16,7 +16,7 @@ from config.logger import info, error
 
 logging.getLogger('WDM').setLevel(logging.NOTSET)
 
-
+'''webdriver options'''
 options = Options()
 options.headless = True
 options.add_argument('--disable-blink-features=AutomationControlled')
@@ -25,6 +25,7 @@ options.add_argument(f'user-agent={HEADERS["user-agent"]}')
 
 
 def get_page(user_id: str) -> dict:
+    '''Getting pagination from author page'''
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     links = []
     info('Processing... ')
@@ -69,14 +70,18 @@ def get_page(user_id: str) -> dict:
     return links
 
 async def get_json(user_id, session):
+    '''Getting json data from every page'''
     async with session.get(f'https://www.pixiv.net/ajax/illust/{user_id}/pages?lang=en', timeout=3) as response:
         return await response.json()
 
 async def collect_tasks_json(users_id, session):
+    '''Gather taks'''
     tasks = [asyncio.create_task(get_json(user_id, session)) for user_id in users_id]
     return await asyncio.gather(*tasks)
 
 async def collect_data(data):
+    '''Take the author name if there's or set "No author"
+    Collects links to image'''
     cookies = get_cookies()
     users_id, pre_links = [], []
     author = data[0].get('author', 'No author')
@@ -93,7 +98,8 @@ async def collect_data(data):
                 if link:
                     pre_links.append(link)
 
-    async def infinity(links):
+    async def infinity(links) -> None:
+        '''Downloading images at created folder with author name'''
         info('Downloading... ')
         for link in tqdm(links):
             try:
@@ -112,6 +118,7 @@ async def collect_data(data):
     await infinity(pre_links)
 
 def authorization(url=r'https://accounts.pixiv.net/login?return_to=https%3A%2F%2Fwww.pixiv.net%2Fen%2F&lang=en&source=pc&view_type=page') -> dict:
+    '''Authorization and create file cookie for the fast sign-in at next time'''
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     info('Authorization...')
     try:
@@ -143,6 +150,7 @@ def authorization(url=r'https://accounts.pixiv.net/login?return_to=https%3A%2F%2
         driver.quit()
 
 def get_cookies():
+    '''Getting cookies from file'''
     cookies = {}
     with open(f'{PATH_SOURCE}cookies.pkl', 'rb') as f:
         cookie = pickle.load(f)
@@ -152,6 +160,8 @@ def get_cookies():
     return cookies
 
 async def main():
+    '''Checks if the file cookies out of date and if yes then do it authorization
+    if no then a read the cookies from the file'''
     if not os.path.exists(f'{PATH_SOURCE}log'):
         authorization()
 
